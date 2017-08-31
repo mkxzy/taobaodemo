@@ -1,17 +1,25 @@
 package com.gyxr.taobaodemo.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gyxr.taobaodemo.domain.Product;
-import com.gyxr.taobaodemo.taobao.ContentParser;
+import com.gyxr.taobaodemo.taobao.ContentDecoder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProductListParser implements ContentParser<List<Product>> {
+public class ProductListDecoder implements ContentDecoder<List<Product>> {
 
     @Override
-    public List<Product> parse(JsonNode jsonNode) {
-
+    public List<Product> decode(String rawString) {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode jsonNode = null;
+        try {
+            jsonNode = mapper.readTree(rawString);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         JsonNode productListNode = jsonNode.get("items_onsale_get_response")
                 .get("items")
                 .get("item");

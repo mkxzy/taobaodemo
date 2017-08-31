@@ -1,6 +1,5 @@
 package com.gyxr.taobaodemo.taobao;
 
-import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -24,24 +23,20 @@ import java.util.stream.Collectors;
  * 淘宝抽象接口
  * 负责处理方法和参数
  */
-public abstract class TaobaoMethod {
+public abstract class TaobaoApiMethod {
 
+    public abstract TaobaoApiMethod setParam(String name, ApiParam value);
 
-    public abstract TaobaoMethod setParam(String name, ApiParam value);
+    public abstract TaobaoApiMethod setAccessToken(String accessToken);
 
-    public abstract Map call(TaobaoApiConfig api) throws IOException;
+    public abstract TaobaoApiResult call() throws IOException;
 
-    public static TaobaoMethod create(String methodName){
+    public static TaobaoApiMethod create(String methodName, TaobaoApiConfig config){
 
-        return new DynamicMethod(methodName, null);
+        return new DynamicMethod(methodName, config);
     }
 
-    public static TaobaoMethod create(String methodName, String accessToken){
-
-        return new DynamicMethod(methodName, accessToken);
-    }
-
-    private static class DynamicMethod extends TaobaoMethod {
+    private static class DynamicMethod<T> extends TaobaoApiMethod {
 
         private String version = "2.0";
         private String signMethod = "hmac";
@@ -49,11 +44,13 @@ public abstract class TaobaoMethod {
         private String accessToken;
         private String methodName;
         private Map<String, ApiParam> params = new HashMap<>();
+        private TaobaoApiConfig config;
 
-        public DynamicMethod(String methodName, String accessToken){
+        public DynamicMethod(String methodName, TaobaoApiConfig config){
 
             this.methodName = methodName;
-            this.accessToken = accessToken;
+            this.config = config;
+//            this.accessToken = accessToken;
         }
 
 //        @Override
@@ -68,12 +65,18 @@ public abstract class TaobaoMethod {
         }
 
         @Override
-        public TaobaoMethod setParam(String name, ApiParam value) {
+        public TaobaoApiMethod setParam(String name, ApiParam value) {
             params.put(name, value);
             return this;
         }
 
-//        @Override
+        @Override
+        public TaobaoApiMethod setAccessToken(String accessToken) {
+            this.accessToken = accessToken;
+            return this;
+        }
+
+        //        @Override
         private Map<String, String> toApiParams() {
 
             Map<String, String> map = new HashMap<>();
@@ -84,12 +87,12 @@ public abstract class TaobaoMethod {
         }
 
         @Override
-        public Map call(TaobaoApiConfig api) throws IOException {
+        public TaobaoApiResult call() throws IOException {
 
             String accessToken = this.getAccessToken();
             Map<String, String> paramss = this.toApiParams();
             paramss.put("v", version);
-            paramss.put("app_key", api.getAppKey());
+            paramss.put("app_key", config.getAppKey());
             if(accessToken != null && !accessToken.equals("")) {
                 paramss.put("session", accessToken);
             }
@@ -99,15 +102,14 @@ public abstract class TaobaoMethod {
             paramss.put("format", format);
             paramss.put("method", this.getName());
             try {
-                paramss.put("sign", SignHelper.signTopRequest(paramss, api.getSecret()));
+                paramss.put("sign", SignHelper.signTopRequest(paramss, config.getSecret()));
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
                 CloseableHttpClient httpclient = HttpClients.createDefault();
-                HttpPost post = new HttpPost(api.getUrl());
+                HttpPost post = new HttpPost(config.getUrl());
                 post.addHeader("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
-//                Map<String, String> paramss = api.mergeParams(this);
                 List<NameValuePair> pairs = paramss.entrySet().stream()
                         .map(p -> new BasicNameValuePair(p.getKey(), p.getValue()))
                         .collect(Collectors.toList());
@@ -118,7 +120,7 @@ public abstract class TaobaoMethod {
                 CloseableHttpResponse response = httpclient.execute(post);
                 String result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
                 System.out.println(result);
-                return (Map) JSONObject.parse(result);
+                return new TaobaoApiResult(result);
         }
     }
 }

@@ -2,9 +2,10 @@ package com.gyxr.taobaodemo.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gyxr.taobaodemo.config.TaobaoConfig;
 import com.gyxr.taobaodemo.taobao.ApiParam;
 import com.gyxr.taobaodemo.taobao.TaobaoApiConfig;
-import com.gyxr.taobaodemo.taobao.TaobaoMethod;
+import com.gyxr.taobaodemo.taobao.TaobaoApiMethod;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -14,6 +15,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,40 +31,37 @@ import java.util.stream.Collectors;
 @RequestMapping("/tb")
 public class TaobaoController {
 
-    private final String appkey = "1021035674";
-    private final String secret = "sandbox68cb8f35e1d06f8154c1551de";
     private final String access_token = "6201102109ZZ62efbd88104be840af68a15872a9d067575182558410";
+
+    private TaobaoApiConfig taobaoConfig;
+
+    public TaobaoController(TaobaoApiConfig taobaoConfig){
+        this.taobaoConfig = taobaoConfig;
+    }
 
     @GetMapping("/product")
     public Object getProduct() throws IOException {
 
-        TaobaoApiConfig api = new TaobaoApiConfig(appkey, secret);
-        TaobaoMethod request = TaobaoMethod.create("taobao.items.onsale.get", access_token)
+        TaobaoApiMethod request = TaobaoApiMethod.create("taobao.items.onsale.get", taobaoConfig)
                 .setParam("fields", ApiParam.fromArray("num_iid", "title", "price"));
-        return request.call(api);
-//        return api.call(request, access_token).convert(new ProductListParser());
+        return request.call();
     }
 
     @GetMapping("/seller")
     public Object getSeller() throws IOException {
 
-        TaobaoApiConfig api = new TaobaoApiConfig(appkey, secret);
-        TaobaoMethod request = TaobaoMethod.create("taobao.user.seller.get")
+        TaobaoApiMethod request = TaobaoApiMethod.create("taobao.user.seller.get", taobaoConfig)
                 .setParam("fields", ApiParam.fromString("user_id,nick,sex"));
-//        return api.call(request, access_token).getRawString();
-        return request.call(api);
+        return request.call();
     }
 
     @GetMapping("/shop")
     public Object getShop(String nick) throws IOException {
 
-        TaobaoApiConfig api = new TaobaoApiConfig(appkey, secret);
-        TaobaoMethod request = TaobaoMethod.create("taobao.shop.get")
+        TaobaoApiMethod request = TaobaoApiMethod.create("taobao.shop.get", taobaoConfig)
                 .setParam("fields", ApiParam.fromString("sid,cid,title,nick,desc,bulletin,pic_path,created,modified"))
                 .setParam("nick", ApiParam.fromString(nick));
-        return request.call(api);
-//        ContentParser<Store> contentParser = new StoreParser();
-//        return api.call(request).convert(contentParser);
+        return request.call();
     }
 
     @GetMapping("/token")
@@ -81,7 +80,6 @@ public class TaobaoController {
 
         String tokenResult = null;
         try {
-//            tokenResult = WebUtils.doPost("https://oauth.tbsandbox.com/token", params, 0, 0);
             CloseableHttpClient httpclient = HttpClients.createDefault();
             HttpPost post = new HttpPost("https://oauth.tbsandbox.com/token");
             post.addHeader("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");

@@ -1,36 +1,21 @@
 package com.gyxr.taobaodemo.taobao;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
-
 /**
- * 淘宝API响应
+ * Created by xiezhiyan on 17-8-31.
  */
 public class TaobaoApiResult {
 
-    private final String rawString;
+    private String rawString;
 
     public TaobaoApiResult(String rawString){
-
         this.rawString = rawString;
     }
 
     public String getRawString() {
-
         return rawString;
     }
 
-    public <T> T convert(ContentParser<T> parser){
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode node = null;
-        try {
-            node = mapper.readTree(rawString);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return parser.parse(node);
+    public <T> T getObject(ContentDecoder<T> decoder){
+        return decoder.decode(this.rawString);
     }
 }

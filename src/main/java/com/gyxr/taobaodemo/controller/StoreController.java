@@ -1,7 +1,13 @@
 package com.gyxr.taobaodemo.controller;
 
+import com.gyxr.taobaodemo.domain.Product;
 import com.gyxr.taobaodemo.domain.Store;
 import com.gyxr.taobaodemo.repository.StoreRepository;
+import com.gyxr.taobaodemo.service.ProductListDecoder;
+import com.gyxr.taobaodemo.service.StoreDecoder;
+import com.gyxr.taobaodemo.taobao.ApiParam;
+import com.gyxr.taobaodemo.taobao.TaobaoApiConfig;
+import com.gyxr.taobaodemo.taobao.TaobaoApiMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,17 +39,19 @@ public class StoreController {
     @PostMapping
     public void add(String nick) throws IOException {
 
-//        TaobaoApiConfig api = new TaobaoApiConfig(appkey, secret);
-//        TaobaoMethod request = TaobaoMethod.create("taobao.shop.get")
-//                .setParam("fields", ApiParam.fromString("sid,cid,title,nick,desc,bulletin,pic_path,created,modified"))
-//                .setParam("nick", ApiParam.fromString(nick));
-//        Store store = api.call(request).convert(new StoreParser());
-//
-//        TaobaoMethod request2 = TaobaoMethod.create("taobao.items.onsale.get")
-//                .setParam("fields", ApiParam.fromArray("num_iid", "title", "price"));
-//        List<Product> productList = api.call(request2, access_token).convert(new ProductListParser());
-//        store.setProducts(productList);
-//        storeRepository.save(store);
+        TaobaoApiConfig api = new TaobaoApiConfig(appkey, secret);
+        TaobaoApiMethod request = TaobaoApiMethod.create("taobao.shop.get", api)
+                .setParam("fields", ApiParam.fromString("sid,cid,title,nick,desc,bulletin,pic_path,created,modified"))
+                .setParam("nick", ApiParam.fromString(nick));
+//                .setDecoder(new StoreDecoder());
+        Store store = request.call().getObject(new StoreDecoder());
+
+        TaobaoApiMethod request2 = TaobaoApiMethod.create("taobao.items.onsale.get", api)
+                .setAccessToken(access_token)
+                .setParam("fields", ApiParam.fromArray("num_iid", "title", "price"));
+        List<Product> productList = request2.call().getObject(new ProductListDecoder());
+        store.setProducts(productList);
+        storeRepository.save(store);
     }
 
     @GetMapping
