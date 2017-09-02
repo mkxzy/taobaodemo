@@ -5,7 +5,7 @@ package com.gyxr.taobaodemo.taobao;
  */
 public class TaobaoApiResult {
 
-    private String rawString;
+    private final String rawString;
 
     public TaobaoApiResult(String rawString){
         this.rawString = rawString;

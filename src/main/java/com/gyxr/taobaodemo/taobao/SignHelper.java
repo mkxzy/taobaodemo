@@ -8,6 +8,9 @@ import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Map;
 
+/**
+ * URL签名帮助类
+ */
 public final class SignHelper {
 
     private static final String CHARSET = "UTF-8";

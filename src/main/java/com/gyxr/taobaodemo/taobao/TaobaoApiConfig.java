@@ -22,8 +22,9 @@ public class TaobaoApiConfig {
 
     private String secret;
 
-    public TaobaoApiConfig(String appKey, String secret){
+    public TaobaoApiConfig(String url, String appKey, String secret){
 
+        this.url = url;
         this.appKey = appKey;
         this.secret = secret;
     }

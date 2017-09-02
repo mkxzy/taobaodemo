@@ -2,8 +2,9 @@ package com.gyxr.taobaodemo.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gyxr.taobaodemo.config.TaobaoConfig;
-import com.gyxr.taobaodemo.taobao.ApiParam;
+import com.gyxr.taobaodemo.service.ProductListDecoder;
+import com.gyxr.taobaodemo.service.StoreDecoder;
+import com.gyxr.taobaodemo.taobao.ApiParams;
 import com.gyxr.taobaodemo.taobao.TaobaoApiConfig;
 import com.gyxr.taobaodemo.taobao.TaobaoApiMethod;
 import org.apache.commons.io.IOUtils;
@@ -15,7 +16,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,15 +43,16 @@ public class TaobaoController {
     public Object getProduct() throws IOException {
 
         TaobaoApiMethod request = TaobaoApiMethod.create("taobao.items.onsale.get", taobaoConfig)
-                .setParam("fields", ApiParam.fromArray("num_iid", "title", "price"));
-        return request.call();
+                .setParam("fields", ApiParams.arrayParam("num_iid", "title", "price"))
+                .setAccessToken(access_token);
+        return request.call().getObject(new ProductListDecoder());
     }
 
     @GetMapping("/seller")
     public Object getSeller() throws IOException {
 
         TaobaoApiMethod request = TaobaoApiMethod.create("taobao.user.seller.get", taobaoConfig)
-                .setParam("fields", ApiParam.fromString("user_id,nick,sex"));
+                .setParam("fields", ApiParams.stringParam("user_id,nick,sex"));
         return request.call();
     }
 
@@ -59,9 +60,9 @@ public class TaobaoController {
     public Object getShop(String nick) throws IOException {
 
         TaobaoApiMethod request = TaobaoApiMethod.create("taobao.shop.get", taobaoConfig)
-                .setParam("fields", ApiParam.fromString("sid,cid,title,nick,desc,bulletin,pic_path,created,modified"))
-                .setParam("nick", ApiParam.fromString(nick));
-        return request.call();
+                .setParam("fields", ApiParams.stringParam("sid,cid,title,nick,desc,bulletin,pic_path,created,modified"))
+                .setParam("nick", ApiParams.stringParam(nick));
+        return request.call().getObject(new StoreDecoder());
     }
 
     @GetMapping("/token")

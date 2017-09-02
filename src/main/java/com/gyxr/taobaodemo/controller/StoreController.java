@@ -5,7 +5,7 @@ import com.gyxr.taobaodemo.domain.Store;
 import com.gyxr.taobaodemo.repository.StoreRepository;
 import com.gyxr.taobaodemo.service.ProductListDecoder;
 import com.gyxr.taobaodemo.service.StoreDecoder;
-import com.gyxr.taobaodemo.taobao.ApiParam;
+import com.gyxr.taobaodemo.taobao.ApiParams;
 import com.gyxr.taobaodemo.taobao.TaobaoApiConfig;
 import com.gyxr.taobaodemo.taobao.TaobaoApiMethod;
 import org.slf4j.Logger;
@@ -29,26 +29,28 @@ public class StoreController {
 
     private Logger logger = LoggerFactory.getLogger(StoreController.class);
 
-    private final String appkey = "1021035674";
-    private final String secret = "sandbox68cb8f35e1d06f8154c1551de";
+//    private final String appkey = "1021035674";
+//    private final String secret = "sandbox68cb8f35e1d06f8154c1551de";
     private final String access_token = "6201102109ZZ62efbd88104be840af68a15872a9d067575182558410";
 
     @Autowired
     private Environment env;
 
+    @Autowired
+    private TaobaoApiConfig apiConfig;
+
     @PostMapping
     public void add(String nick) throws IOException {
 
-        TaobaoApiConfig api = new TaobaoApiConfig(appkey, secret);
-        TaobaoApiMethod request = TaobaoApiMethod.create("taobao.shop.get", api)
-                .setParam("fields", ApiParam.fromString("sid,cid,title,nick,desc,bulletin,pic_path,created,modified"))
-                .setParam("nick", ApiParam.fromString(nick));
-//                .setDecoder(new StoreDecoder());
+//        TaobaoApiConfig apiConfig = new TaobaoApiConfig(appkey, secret);
+        TaobaoApiMethod request = TaobaoApiMethod.create("taobao.shop.get", apiConfig)
+                .setParam("fields", ApiParams.stringParam("sid,cid,title,nick,desc,bulletin,pic_path,created,modified"))
+                .setParam("nick", ApiParams.stringParam(nick));
         Store store = request.call().getObject(new StoreDecoder());
 
-        TaobaoApiMethod request2 = TaobaoApiMethod.create("taobao.items.onsale.get", api)
+        TaobaoApiMethod request2 = TaobaoApiMethod.create("taobao.items.onsale.get", apiConfig)
                 .setAccessToken(access_token)
-                .setParam("fields", ApiParam.fromArray("num_iid", "title", "price"));
+                .setParam("fields", ApiParams.arrayParam("num_iid", "title", "price"));
         List<Product> productList = request2.call().getObject(new ProductListDecoder());
         store.setProducts(productList);
         storeRepository.save(store);

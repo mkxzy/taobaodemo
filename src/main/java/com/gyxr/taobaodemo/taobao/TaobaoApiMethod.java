@@ -1,5 +1,7 @@
 package com.gyxr.taobaodemo.taobao;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -31,12 +33,12 @@ public abstract class TaobaoApiMethod {
 
     public abstract TaobaoApiResult call() throws IOException;
 
-    public static TaobaoApiMethod create(String methodName, TaobaoApiConfig config){
+    public static TaobaoApiMethod create(String methodName, TaobaoApiConfig config) {
 
-        return new DynamicMethod(methodName, config);
+        return new DefaultTaobaoMethod(methodName, config);
     }
 
-    private static class DynamicMethod<T> extends TaobaoApiMethod {
+    private static class DefaultTaobaoMethod extends TaobaoApiMethod {
 
         private String version = "2.0";
         private String signMethod = "hmac";
@@ -46,19 +48,16 @@ public abstract class TaobaoApiMethod {
         private Map<String, ApiParam> params = new HashMap<>();
         private TaobaoApiConfig config;
 
-        public DynamicMethod(String methodName, TaobaoApiConfig config){
+        public DefaultTaobaoMethod(String methodName, TaobaoApiConfig config) {
 
             this.methodName = methodName;
             this.config = config;
-//            this.accessToken = accessToken;
         }
 
-//        @Override
         private String getAccessToken() {
             return this.accessToken;
         }
 
-//        @Override
         private String getName() {
 
             return this.methodName;
@@ -76,12 +75,11 @@ public abstract class TaobaoApiMethod {
             return this;
         }
 
-        //        @Override
         private Map<String, String> toApiParams() {
 
             Map<String, String> map = new HashMap<>();
-            for(Map.Entry<String, ApiParam> entry: this.params.entrySet()){
-                map.put(entry.getKey(), entry.getValue().stringfy());
+            for (Map.Entry<String, ApiParam> entry : this.params.entrySet()) {
+                map.put(entry.getKey(), entry.getValue().format());
             }
             return map;
         }
@@ -93,7 +91,7 @@ public abstract class TaobaoApiMethod {
             Map<String, String> paramss = this.toApiParams();
             paramss.put("v", version);
             paramss.put("app_key", config.getAppKey());
-            if(accessToken != null && !accessToken.equals("")) {
+            if (accessToken != null && !accessToken.equals("")) {
                 paramss.put("session", accessToken);
             }
             paramss.put("sign_method", signMethod);
@@ -107,20 +105,29 @@ public abstract class TaobaoApiMethod {
                 e.printStackTrace();
             }
 
-                CloseableHttpClient httpclient = HttpClients.createDefault();
-                HttpPost post = new HttpPost(config.getUrl());
-                post.addHeader("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
-                List<NameValuePair> pairs = paramss.entrySet().stream()
-                        .map(p -> new BasicNameValuePair(p.getKey(), p.getValue()))
-                        .collect(Collectors.toList());
-                StringEntity stringEntity = new StringEntity(
-                        URLEncodedUtils.format(pairs, StandardCharsets.UTF_8),
-                        StandardCharsets.UTF_8);
-                post.setEntity(stringEntity);
-                CloseableHttpResponse response = httpclient.execute(post);
-                String result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-                System.out.println(result);
-                return new TaobaoApiResult(result);
+            CloseableHttpClient httpclient = HttpClients.createDefault();
+            HttpPost post = new HttpPost(config.getUrl());
+            post.addHeader("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
+            List<NameValuePair> pairs = paramss.entrySet().stream()
+                    .map(p -> new BasicNameValuePair(p.getKey(), p.getValue()))
+                    .collect(Collectors.toList());
+            StringEntity stringEntity = new StringEntity(
+                    URLEncodedUtils.format(pairs, StandardCharsets.UTF_8),
+                    StandardCharsets.UTF_8);
+            post.setEntity(stringEntity);
+            CloseableHttpResponse response = httpclient.execute(post);
+            String result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(result);
+            JsonNode errNode = jsonNode.findValue("error_response");
+            if(errNode != null){
+                String code = errNode.get("code").asText();
+                String msg = errNode.get("msg").asText();
+                String requestId = errNode.get("request_id").asText();
+                throw new TaobaoApiException(code, msg, requestId);
+            }
+            System.out.println(result);
+            return new TaobaoApiResult(result);
         }
     }
 }

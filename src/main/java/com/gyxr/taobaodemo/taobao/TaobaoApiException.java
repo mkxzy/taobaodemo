@@ -11,7 +11,7 @@ public class TaobaoApiException extends RuntimeException {
 
     public TaobaoApiException(String code, String msg, String requestId){
 
-        super(msg);
+        super(String.format("%s: %s", code, msg));
         this.code = code;
         this.msg = msg;
         this.requestId = requestId;
